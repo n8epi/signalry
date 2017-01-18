@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Acceleration Example</title>
+        <script type="text/javascript" src="js/dropbox.min.js"></script>
+        
+        <script type="text/javascript" charset="utf-8">
+            var watchID = null;
+            
+            var signalIds = ["xacc", "yacc", "zacc"];
+            var t = [] // Variable for holding phone times
+            var chartTitles = {xacc: "X Acceleration", yacc: "Y Acceleration", zacc: "Z Acceleration"};
+            var data = {xacc: [], yacc: [], zacc: []};
+            var charts = {xacc: null, yacc: null, zacc: null};
+            
+            var xVal = 0;
+            var dataLength = 256; // number of dataPoints visible at any point
+            
+            // Dropbox stuff...
+            var DROPBOX_APP_KEY = 'vbbxdkgrcja2cks';
+            var client = new Dropbox.Client({key: DROPBOX_APP_KEY});
+            client.authDriver(new Dropbox.AuthDriver.Cordova());
+            
+            // Construct a new chart
+            var newChart = function(id, title, data) {
+                return new CanvasJS.Chart(id,{
+                                          title :{
+                                          text: title
+                                          },
+                                          data: [{
+                                                 type: "line",
+                                                 dataPoints: data
+                                                 }]
+                                          });
+            }
+        
+        var getTime = function() {
+            return Date.now();
+        }
+        
+            // Initializes all signal charts
+        var initializeCharts = function(count) {
+            count = count || 1;
+            
+            for (var j=0; j<count; j++) {
+                for (var i in signalIds) {
+                    id = signalIds[i];
+                    data[id].push({x:xVal, y: 0});
+                }
+                t.push(getTime());
+                xVal++;
+            }
+            
+            for (var i in signalIds) {
+                id = signalIds[i];
+                charts[id].render();
+            }
+            
+        }
+        
+        // Appends signal data to data and updates charts
+        var appendCharts = function(values) {
+            
+            for (var i in signalIds) {
+                id = signalIds[i];
+                data[id].push({x: xVal, y: values[id]});
+                data[id].shift();
+                charts[id].render();
+            }
+            
+            t.push(getTime());
+            t.shift();
+            
+            xVal++;
+            
+        }
+        
+        // On load initializations
+            function onLoad(){
+                document.addEventListener("deviceready", onDeviceReady, false);
+                
+                // Construct all of the charts
+                for (var i in signalIds) {
+                    id = signalIds[i];
+                    charts[id] = newChart(id, chartTitles[id], data[id]);
+                }
+               
+               // Initialize the chart data and render
+               initializeCharts(dataLength);
+               
+            }
+        
+            function onDeviceReady() {
+            
+            // startWatch(); Don't begin with a watch
+            
+            }
+        
+            function startWatch() {
+                var options = { frequency: 200 };
+                watchID = navigator.accelerometer.watchAcceleration(onSuccess, onError, options);
+            }
+        
+            function stopWatch() {
+                if (watchID) {
+                    navigator.accelerometer.clearWatch(watchID);
+                    watchID = null;
+                }
+            }
+        
+        // Call chart update function when presented with acceleration data
+            function onSuccess(acceleration) {
+                var element = document.getElementById('accelerometer');
+            
+                element.innerHTML = 'Acceleration X: ' + acceleration.x + '<br />' +
+                'Acceleration Y: ' + acceleration.y + '<br />' +
+                'Acceleration Z: ' + acceleration.z + '<br />' +
+                'Timestamp: ' + acceleration.timestamp + '<br />';
+        
+                appendCharts({xacc: acceleration.x, yacc: acceleration.y, zacc: acceleration.z});
+            }
+        
+            function onError() {
+                alert('onError!');
+            }
+        
+            function record() {
+                client.authenticate(function(error){
+                                        // If an error happens
+                                        if (error) {
+                                            console.log('Authentication error: ' + error);
+                                            return;
+                                        }
+                                    
+                                        if (client.isAuthenticated()) {
+                                    
+                                            // CSV data is extracted and placed in data.txt
+                                    var dataString = "";
+                                    for (var j = 0; j < dataLength; j++) {
+                                    dataString = dataString + j + ", " + t[j];
+                                    for (var i in signalIds) {
+                                    id = signalIds[i];
+                                    dataString = dataString + ", " + data[id][j]["y"];
+                                    }
+                                    dataString = dataString + "\n";
+                                    
+                                    }
+                                    
+                                            client.writeFile("data.txt", dataString, function(error, stat) {
+                                                     if (error) {
+                                                     return console.log(error);
+                                                     }
+                                                     
+                                                     console.log(stat);
+                                                     console.log("File saved as revision " + stat.versionTag);
+                                                     });
+                                        } else {
+                                            alert("No Dropbox Authentication detected, try again");
+                                        }
+                                    });
+            
+            }
+        
+        
+        </script>
+    </head>
+    <body onload="onLoad()">
+        <div id="accelerometer">Waiting for accelerometer...</div>
+        <button onclick="startWatch();">Start Watching</button>
+        <button onclick="stopWatch();">Stop Watching</button>
+        <button onclick="record();">Record</button>
+        <script type="text/javascript" src="cordova.js"></script>
+        <script type="text/javascript" src="js/canvasjs.min.js"></script>
+        <div id="xacc" style="height: 300px; width:90%;">
+        </div>
+        <div id="yacc" style="height: 300px; width:90%;">
+        </div>
+        <div id="zacc" style="height: 300px; width:90%;">
+        </div>
+    </body>
+</html>
