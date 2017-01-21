@@ -6,15 +6,17 @@
         
         <script type="text/javascript" charset="utf-8">
             var watchID = null;
+            var eventTag = false;
             
             var signalIds = ["xacc", "yacc", "zacc"];
             var t = [] // Variable for holding phone times
+            var events = [] // Variable for holding event indicators
             var chartTitles = {xacc: "X Acceleration", yacc: "Y Acceleration", zacc: "Z Acceleration"};
             var data = {xacc: [], yacc: [], zacc: []};
             var charts = {xacc: null, yacc: null, zacc: null};
             
             var xVal = 0;
-            var dataLength = 256; // number of dataPoints visible at any point
+            var dataLength = 2048; // number of dataPoints visible at any point
             
             // Dropbox stuff...
             var DROPBOX_APP_KEY = 'vbbxdkgrcja2cks';
@@ -48,6 +50,7 @@
                     data[id].push({x:xVal, y: 0});
                 }
                 t.push(getTime());
+                events.push(0);
                 xVal++;
             }
             
@@ -67,6 +70,15 @@
                 data[id].shift();
                 charts[id].render();
             }
+            
+            // Update event tag
+            if (eventTag) {
+                events.push(1);
+                eventTag = false;
+            } else {
+                events.push(0);
+            }
+            events.shift();
             
             t.push(getTime());
             t.shift();
@@ -97,7 +109,7 @@
             }
         
             function startWatch() {
-                var options = { frequency: 200 };
+                var options = { frequency: 128 };
                 watchID = navigator.accelerometer.watchAcceleration(onSuccess, onError, options);
             }
         
@@ -142,7 +154,7 @@
                                     id = signalIds[i];
                                     dataString = dataString + ", " + data[id][j]["y"];
                                     }
-                                    dataString = dataString + "\n";
+                                    dataString = dataString + ", " + events[j] + "\n";
                                     
                                     }
                                     
@@ -161,6 +173,11 @@
             
             }
         
+        // Simple update for recording that the event is occurring
+        function registerEvent() {
+            eventTag = true;
+        }
+        
         
         </script>
     </head>
@@ -169,6 +186,7 @@
         <button onclick="startWatch();">Start Watching</button>
         <button onclick="stopWatch();">Stop Watching</button>
         <button onclick="record();">Record</button>
+        <button onclick="registerEvent();" style="height:60px;width:60px">Falling</button>
         <script type="text/javascript" src="cordova.js"></script>
         <script type="text/javascript" src="js/canvasjs.min.js"></script>
         <div id="xacc" style="height: 300px; width:90%;">
