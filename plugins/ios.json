@@ -63,13 +63,13 @@
         },
         "cordova-plugin-whitelist": {
             "PACKAGE_NAME": "com.n8epi.signalry"
+        },
+        "cordova-plugin-file": {
+            "PACKAGE_NAME": "com.n8epi.signalry"
         }
     },
     "dependent_plugins": {
         "cordova-plugin-compat": {
-            "PACKAGE_NAME": "com.n8epi.signalry"
-        },
-        "cordova-plugin-file": {
             "PACKAGE_NAME": "com.n8epi.signalry"
         }
     }

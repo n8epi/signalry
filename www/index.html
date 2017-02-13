@@ -40,7 +40,7 @@
             return Date.now();
         }
         
-            // Initializes all signal charts
+        // Initializes all signal charts
         var initializeCharts = function(count) {
             count = count || 1;
             
@@ -87,7 +87,7 @@
             
         }
         
-        // On load initializations
+        // Application on load initializations
             function onLoad(){
                 document.addEventListener("deviceready", onDeviceReady, false);
                 
@@ -103,16 +103,16 @@
             }
         
             function onDeviceReady() {
-            
-            // startWatch(); Don't begin with a watch
-            
+                // Processes to start on initialization
             }
         
+            // Start gathering accelerometer data
             function startWatch() {
                 var options = { frequency: 128 };
                 watchID = navigator.accelerometer.watchAcceleration(onSuccess, onError, options);
             }
         
+            // Stop gathering accelerometer data
             function stopWatch() {
                 if (watchID) {
                     navigator.accelerometer.clearWatch(watchID);
@@ -120,65 +120,134 @@
                 }
             }
         
-        // Call chart update function when presented with acceleration data
+            // Call chart update function when presented with acceleration data
             function onSuccess(acceleration) {
                 var element = document.getElementById('accelerometer');
             
+                // Update the numeric data display
                 element.innerHTML = 'Acceleration X: ' + acceleration.x + '<br />' +
                 'Acceleration Y: ' + acceleration.y + '<br />' +
                 'Acceleration Z: ' + acceleration.z + '<br />' +
                 'Timestamp: ' + acceleration.timestamp + '<br />';
         
+                // Append to data and update the charts
                 appendCharts({xacc: acceleration.x, yacc: acceleration.y, zacc: acceleration.z});
             }
         
+            // Generic error function
             function onError() {
-                alert('onError!');
+                alert('Error!');
             }
         
-            function record() {
-                client.authenticate(function(error){
-                                        // If an error happens
-                                        if (error) {
-                                            console.log('Authentication error: ' + error);
-                                            return;
-                                        }
-                                    
-                                        if (client.isAuthenticated()) {
-                                    
-                                            // CSV data is extracted and placed in data.txt
-                                    var dataString = "";
-                                    for (var j = 0; j < dataLength; j++) {
+        // Records gathered accelerometer data to Dropbox
+        function record() {
+            client.authenticate(function(error){
+                                // If an error happens
+                                if (error) {
+                                    console.log('Authentication error: ' + error);
+                                    return;
+                                }
+                                
+                                if (client.isAuthenticated()) {
+                                
+                                // CSV data is extracted and placed in data.txt
+                                var dataString = "";
+                                for (var j = 0; j < dataLength; j++) {
                                     dataString = dataString + j + ", " + t[j];
                                     for (var i in signalIds) {
-                                    id = signalIds[i];
-                                    dataString = dataString + ", " + data[id][j]["y"];
+                                        id = signalIds[i];
+                                        dataString = dataString + ", " + data[id][j]["y"];
                                     }
                                     dataString = dataString + ", " + events[j] + "\n";
-                                    
-                                    }
-                                    
-                                            client.writeFile("data.txt", dataString, function(error, stat) {
-                                                     if (error) {
-                                                     return console.log(error);
-                                                     }
-                                                     
-                                                     console.log(stat);
-                                                     console.log("File saved as revision " + stat.versionTag);
-                                                     });
-                                        } else {
-                                            alert("No Dropbox Authentication detected, try again");
-                                        }
-                                    });
-            
-            }
+                                
+                                }
+    
+                                client.writeFile("data.txt", dataString, writeErrorStatus);
+                                
+                                } else {
+                                    alert("No Dropbox Authentication detected, try again");
+                                }
+                                });
+                                
+        }
         
         // Simple update for recording that the event is occurring
         function registerEvent() {
             eventTag = true;
         }
         
+        // Capture audio using device's native interface
+        function recordAudio() {
+            var options = { limit: 1 };
+            navigator.device.capture.captureAudio(captureSuccess, captureError, options);
+        }
         
+        // Callback to save captured audio to dropbox
+        var captureSuccess = function(mediaFiles) {
+                var path = 'file://' + mediaFiles[0].fullPath; // Prepend device root location
+                client.authenticate(function(error){
+                                    // Check for error
+                                    if (error) {
+                                        alert("Authentication error.");
+                                        return console.log('Authentication error: ' + error);
+                                    }
+                                    
+                                    // If authenticated, complete the write
+                                    if (client.isAuthenticated()) {
+                                        // Find the file in the local file system and apply a callback
+                                        window.resolveLocalFileSystemURI(path, saveAudioDropbox, rlfsURIError);
+                                    } else {
+                                        alert("No Dropbox Authentication detected, try again");
+                                    }
+                                    });
+        };
+        
+        // Callback for completion of saving audio after local file system is resolved
+        var saveAudioDropbox = function (fileEntry) {
+            fileEntry.file(function (file) {
+                           var reader = new FileReader();
+                           
+                           // Set callback for the reader; e is an event
+                           reader.onload = function (e) {
+                                client.writeFile("audio.wav", reader.result, writeErrorStatus);
+                           }
+                           
+                           // Perform the read
+                           reader.readAsArrayBuffer(file);
+                
+                           });
+                           
+        };
+        
+        // Function for Dropbox write errors and saving file status
+        var writeErrorStatus = function(error, stat) {
+            if (error) {
+                alert("Error writing file.");
+                return console.log(error);
+            }
+            
+            console.log(stat);
+            console.log("File saved as revision " + stat.versionTag);
+        };
+        
+        
+        // Error handling function for resolve local file system
+        var rlfsURIError = function(error) {
+            alert('Error in resolving local file system.');
+            return console.log('Error in resolving local file system.');
+        }
+        
+        
+        
+        // Capture error callback
+        var captureError = function(error) {
+            navigator.notification.alert('Error code: ' + error.code, null, 'Capture Error');
+        };
+        
+        
+        
+
+
         </script>
     </head>
     <body onload="onLoad()">
@@ -187,6 +256,9 @@
         <button onclick="stopWatch();">Stop Watching</button>
         <button onclick="record();">Record</button>
         <button onclick="registerEvent();" style="height:60px;width:60px">Falling</button>
+        <div id="audio">
+            <button onclick="recordAudio();">Record Audio</button>
+        </div>
         <script type="text/javascript" src="cordova.js"></script>
         <script type="text/javascript" src="js/canvasjs.min.js"></script>
         <div id="xacc" style="height: 300px; width:90%;">
