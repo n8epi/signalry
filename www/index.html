@@ -1,8 +1,31 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>Acceleration Example</title>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+        <meta name="description" content="">
+        <meta name="author" content="">
+        
+        <title>Signalry</title>
+        <script type="text/javascript" src="js/jquery-3.2.0.min.js"></script>
         <script type="text/javascript" src="js/dropbox.min.js"></script>
+        <script type="text/javascript" src="js/bootstrap.min.js"></script>
+        <script type="text/javascript" src="js/numeric-1.2.6.min.js"></script>
+        
+        <!-- Bootstrap core CSS -->
+        <link href="css/bootstrap.min.css" rel="stylesheet">
+        <!-- Bootstrap theme -->
+        <link href="css/bootstrap-theme.min.css" rel="stylesheet">
+            
+        <!-- Load c3.css -->
+        <link href="css/c3.min.css" rel="stylesheet" type="text/css">
+            
+        <!-- Load d3.js and c3.js -->
+        <script src="js/d3.min.js" charset="utf-8"></script>
+        <script src="js/c3.min.js"></script>
+            
         
         <script type="text/javascript" charset="utf-8">
             var watchID = null;
@@ -11,30 +34,18 @@
             var signalIds = ["xacc", "yacc", "zacc"];
             var t = [] // Variable for holding phone times
             var events = [] // Variable for holding event indicators
-            var chartTitles = {xacc: "X Acceleration", yacc: "Y Acceleration", zacc: "Z Acceleration"};
-            var data = {xacc: [], yacc: [], zacc: []};
-            var charts = {xacc: null, yacc: null, zacc: null};
-            
+            var accdata = {xacc: [], yacc: [], zacc: []};
+            var chartTitles = {xacc: 'x', yacc: 'y', zacc: 'z'};
             var xVal = 0;
-            var dataLength = 2048; // number of dataPoints visible at any point
+            var dataLength = 100; // number of dataPoints visible at any point
             
             // Dropbox stuff...
             var DROPBOX_APP_KEY = 'vbbxdkgrcja2cks';
             var client = new Dropbox.Client({key: DROPBOX_APP_KEY});
             client.authDriver(new Dropbox.AuthDriver.Cordova());
             
-            // Construct a new chart
-            var newChart = function(id, title, data) {
-                return new CanvasJS.Chart(id,{
-                                          title :{
-                                          text: title
-                                          },
-                                          data: [{
-                                                 type: "line",
-                                                 dataPoints: data
-                                                 }]
-                                          });
-            }
+            // c3 Chart
+            var chart = null;
         
         var getTime = function() {
             return Date.now();
@@ -46,18 +57,33 @@
             
             for (var j=0; j<count; j++) {
                 for (var i in signalIds) {
-                    id = signalIds[i];
-                    data[id].push({x:xVal, y: 0});
+                    id = signalIds[i]
+                    accdata[id].push(0)
                 }
                 t.push(getTime());
                 events.push(0);
                 xVal++;
             }
             
-            for (var i in signalIds) {
-                id = signalIds[i];
-                charts[id].render();
-            }
+            accdata["xacc"].unshift('x');
+            accdata["yacc"].unshift('y');
+            accdata["zacc"].unshift('z');
+            
+            chart = c3.generate({   bindto: '#chart',
+                                    data: {
+                                    columns: [accdata["xacc"],
+                                              accdata["yacc"],
+                                              accdata["zacc"]]
+                                    },
+                                    axis: {
+                                        x: {
+                                        type: 'category',
+                                        tick: {
+                                            count: 10
+                                        }
+                                        }
+                                    }
+                                    });
             
         }
         
@@ -66,10 +92,20 @@
             
             for (var i in signalIds) {
                 id = signalIds[i];
-                data[id].push({x: xVal, y: values[id]});
-                data[id].shift();
-                charts[id].render();
+                accdata[id].push(values[id]);
+                accdata[id].shift();
+                accdata[id].shift()
             }
+            
+            accdata["xacc"].unshift('x');
+            accdata["yacc"].unshift('y');
+            accdata["zacc"].unshift('z');
+            chart.load({
+                       columns: [accdata["xacc"],
+                                 accdata["yacc"],
+                                 accdata["zacc"]]
+                       });
+            
             
             // Update event tag
             if (eventTag) {
@@ -90,12 +126,6 @@
         // Application on load initializations
             function onLoad(){
                 document.addEventListener("deviceready", onDeviceReady, false);
-                
-                // Construct all of the charts
-                for (var i in signalIds) {
-                    id = signalIds[i];
-                    charts[id] = newChart(id, chartTitles[id], data[id]);
-                }
                
                // Initialize the chart data and render
                initializeCharts(dataLength);
@@ -108,7 +138,7 @@
         
             // Start gathering accelerometer data
             function startWatch() {
-                var options = { frequency: 128 };
+                var options = { frequency: 8 };
                 watchID = navigator.accelerometer.watchAcceleration(onSuccess, onError, options);
             }
         
@@ -122,13 +152,13 @@
         
             // Call chart update function when presented with acceleration data
             function onSuccess(acceleration) {
-                var element = document.getElementById('accelerometer');
+                //var element = ('accelerometer');
             
                 // Update the numeric data display
-                element.innerHTML = 'Acceleration X: ' + acceleration.x + '<br />' +
-                'Acceleration Y: ' + acceleration.y + '<br />' +
-                'Acceleration Z: ' + acceleration.z + '<br />' +
-                'Timestamp: ' + acceleration.timestamp + '<br />';
+                //element.innerHTML = 'Acceleration X: ' + acceleration.x + '<br />' +
+                //'Acceleration Y: ' + acceleration.y + '<br />' +
+                //'Acceleration Z: ' + acceleration.z + '<br />' +
+                //'Timestamp: ' + acceleration.timestamp + '<br />';
         
                 // Append to data and update the charts
                 appendCharts({xacc: acceleration.x, yacc: acceleration.y, zacc: acceleration.z});
@@ -176,11 +206,14 @@
             eventTag = true;
         }
         
+        //********AUDIO************
+        
         // Capture audio using device's native interface
         function recordAudio() {
             var options = { limit: 1 };
             navigator.device.capture.captureAudio(captureSuccess, captureError, options);
         }
+        
         
         // Callback to save captured audio to dropbox
         var captureSuccess = function(mediaFiles) {
@@ -219,6 +252,53 @@
                            
         };
         
+        
+        //************IMAGE******************
+        // capture callback
+        var imageCaptureSuccess = function(mediaFiles) {
+            var path = 'file://' + mediaFiles[0].fullPath; // Prepend device root location
+            client.authenticate(function(error){
+                                // Check for error
+                                if (error) {
+                                alert("Authentication error.");
+                                return console.log('Authentication error: ' + error);
+                                }
+                                
+                                // If authenticated, complete the write
+                                if (client.isAuthenticated()) {
+                                // Find the file in the local file system and apply a callback
+                                window.resolveLocalFileSystemURI(path, saveImageDropbox, rlfsURIError);
+                                } else {
+                                alert("No Dropbox Authentication detected, try again");
+                                }
+                                });
+        };
+        
+        // start image capture
+        function recordImage() {
+            var options = { limit: 1 };
+            navigator.device.capture.captureImage(imageCaptureSuccess, captureError, options);
+        }
+        
+        // Callback for completion of saving audio after local file system is resolved
+        var saveImageDropbox = function (fileEntry) {
+            fileEntry.file(function (file) {
+                           var reader = new FileReader();
+                           
+                           // Set callback for the reader; e is an event
+                           reader.onload = function (e) {
+                           client.writeFile("image.png", reader.result, writeErrorStatus);
+                           }
+                           
+                           // Perform the read
+                           reader.readAsArrayBuffer(file);
+                           
+                           });
+                           
+        };
+        
+        //*********Error functions*************
+        
         // Function for Dropbox write errors and saving file status
         var writeErrorStatus = function(error, stat) {
             if (error) {
@@ -238,34 +318,93 @@
         }
         
         
-        
         // Capture error callback
         var captureError = function(error) {
             navigator.notification.alert('Error code: ' + error.code, null, 'Capture Error');
         };
         
-        
-        
-
 
         </script>
     </head>
     <body onload="onLoad()">
-        <div id="accelerometer">Waiting for accelerometer...</div>
-        <button onclick="startWatch();">Start Watching</button>
-        <button onclick="stopWatch();">Stop Watching</button>
-        <button onclick="record();">Record</button>
-        <button onclick="registerEvent();" style="height:60px;width:60px">Falling</button>
-        <div id="audio">
-            <button onclick="recordAudio();">Record Audio</button>
+        
+        <nav class="navbar navbar-default">
+            <div class="container-fluid">
+                <div class="navbar-header">
+                   
+                    <a class="navbar-brand" href="#">Signalry</a>
+                </div>
+                    <div id="navbar" class="navbar-collapse">
+                        <ul class="nav nav-tabs" role="tablist" id="myTab">
+                            <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#motion" aria-controls="motion">Motion</a></li>
+                            <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#audio" aria-controls="audio">Audio</a></li>
+                            <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#image" aria-controls="image">Image</a></li>
+                        </ul>
+                    </div><!--/.nav-collapse -->
+            </div>
+        </nav>
+                
+        
+        
+        <div class="container theme-showcase" role="main">
+            
+
+
+            
+            <div class="tab-content">
+        
+        <div class="tab-pane" id="audio">
+            <button type="button" class="btn btn-lg btn-primary" onclick="recordAudio();">
+                Record Audio
+            </button>
         </div>
+        
+        <div class="tab-pane" id="image">
+            <button type="button" class="btn btn-lg btn-primary" onclick="recordImage();">
+                Capture Image
+            </button>
+        </div>
+        
+        <div class="tab-pane active" id="motion">
+            <p>
+            <button type="button" class="btn btn-lg btn-primary" onclick="startWatch();">
+                Start Accelerometer
+            </button>
+            </p>
+            
+            <p>
+            <button type="button" class="btn btn-lg btn-primary" onclick="stopWatch();">
+                Stop Accelerometer
+            </button>
+            </p>
+            
+            <p>
+            <button type="button" class="btn btn-lg btn-primary" onclick="record();">
+                Record to Dropbox
+            </button>
+            </p>
+            
+            <p>
+            <button type="button" class="btn btn-lg btn-primary" onclick="registerEvent();">
+                Register Falling
+            </button>
+            </p>
+            
+            </p>
+            
+            <div id="chart" style="height: 300px; width:90%;"></div>
+        </div>
+        
+        </div>
+            
+            
         <script type="text/javascript" src="cordova.js"></script>
-        <script type="text/javascript" src="js/canvasjs.min.js"></script>
-        <div id="xacc" style="height: 300px; width:90%;">
-        </div>
-        <div id="yacc" style="height: 300px; width:90%;">
-        </div>
-        <div id="zacc" style="height: 300px; width:90%;">
-        </div>
+        
+        <script>
+            $(function () {
+              $('#myTab a:first').tab('show')
+              })
+        </script>
+        
     </body>
 </html>

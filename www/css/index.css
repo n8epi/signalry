@@ -113,3 +113,19 @@ h1 {
     animation:fade 3000ms infinite;
     -webkit-animation:fade 3000ms infinite;
 }
+
+@media screen and (max-width: 480px) {
+    .nav {
+        padding-left:2px;
+        padding-right:2px;
+    }
+    .nav li {
+        display:block !important;
+        width:100%;
+        margin:0px;
+    }
+    .nav li.active {
+        border-bottom:1px solid #ddd!important;
+        margin: 0px;
+    }
+}
