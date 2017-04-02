@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="com.n8epi.signalry" version="0.3.0" android-versionCode="001" ios-CFBundleVersion="0.0.3" xmlns="http://www.w3.org/ns/widgets" xmlns:gap="http://phonegap.com/ns/1.0">
+<widget android-versionCode="001" id="com.n8epi.signalry" ios-CFBundleVersion="0.0.3" version="0.3.0" xmlns="http://www.w3.org/ns/widgets" xmlns:gap="http://phonegap.com/ns/1.0">
     <name>Signalry</name>
     <description>
         Simple application for viewing and recording phone signals.
@@ -43,7 +43,7 @@
         <splash height="1136" platform="ios" src="www/res/screen/ios/screen-iphone-portrait-568h-2x.png" width="640" />
         <splash height="1334" platform="ios" src="www/res/screen/ios/screen-iphone-portrait-667h.png" width="750" />
         <splash height="2208" platform="ios" src="www/res/screen/ios/screen-iphone-portrait-736h.png" width="1242" />
-       <splash height="2048" platform="ios" src="www/res/screen/ios/screen-ipad-portrait-2x.png" width="1536" />
+        <splash height="2048" platform="ios" src="www/res/screen/ios/screen-ipad-portrait-2x.png" width="1536" />
         <splash height="1024" platform="ios" src="www/res/screen/ios/screen-ipad-portrait.png" width="768" />
         <splash height="960" platform="ios" src="www/res/screen/ios/screen-iphone-portrait-2x.png" width="640" />
         <splash height="480" platform="ios" src="www/res/screen/ios/screen-iphone-portrait.png" width="320" />
@@ -65,7 +65,6 @@
     <engine name="ios" spec="~4.3.1" />
     <plugin name="cordova-plugin-device-motion" spec="https://git-wip-us.apache.org/repos/asf/cordova-plugin-device-motion.git" />
     <plugin name="cordova-plugin-battery-status" spec="~1.1.1" />
-    <plugin name="cordova-plugin-camera" spec="~2.1.1" />
     <plugin name="cordova-plugin-media-capture" spec="~1.2.0" />
     <plugin name="cordova-plugin-console" spec="~1.0.2" />
     <plugin name="cordova-plugin-contacts" spec="~2.0.1" />
@@ -82,4 +81,5 @@
     <plugin name="cordova-plugin-statusbar" spec="~2.1.2" />
     <plugin name="cordova-plugin-vibration" spec="~2.1.0" />
     <plugin name="cordova-plugin-whitelist" spec="~1.2.1" />
+    <plugin name="cordova-plugin-camera" spec="~2.1.1" />
 </widget>

@@ -1,14 +1,12 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <meta charset="utf-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
         <meta name="description" content="">
         <meta name="author" content="">
         
         <title>Signalry</title>
+        
+        <script type="text/javascript" src="cordova.js"></script>
         <script type="text/javascript" src="js/jquery-3.2.0.min.js"></script>
         <script type="text/javascript" src="js/dropbox.min.js"></script>
         <script type="text/javascript" src="js/bootstrap.min.js"></script>
@@ -339,6 +337,7 @@
                             <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#motion" aria-controls="motion">Motion</a></li>
                             <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#audio" aria-controls="audio">Audio</a></li>
                             <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#image" aria-controls="image">Image</a></li>
+                            <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#nam" aria-controls="nam">Nam Stuff</a></li>
                         </ul>
                     </div><!--/.nav-collapse -->
             </div>
@@ -351,7 +350,7 @@
 
 
             
-            <div class="tab-content">
+        <div class="tab-content">
         
         <div class="tab-pane" id="audio">
             <button type="button" class="btn btn-lg btn-primary" onclick="recordAudio();">
@@ -395,10 +394,13 @@
             <div id="chart" style="height: 300px; width:90%;"></div>
         </div>
         
+        <div class="tab-pane" id="nam">
+            <button type="button" class="btn btn-lg btn-primary" onclick="recordImage();">
+                Capture Image
+            </button>
         </div>
-            
-            
-        <script type="text/javascript" src="cordova.js"></script>
+        
+        </div>
         
         <script>
             $(function () {
@@ -407,4 +409,6 @@
         </script>
         
     </body>
+    
+    
 </html>
