@@ -10,6 +10,7 @@ var signalIds = ["xacc", "yacc", "zacc"];
 var t = []; // Variable for holding phone times
 var events = []; // Variable for holding event indicators
 var accdata = {xacc: [], yacc: [], zacc: []};
+var unfilteredData = {xacc: [], yacc: [], zacc: []};
 var freqOrder = 6;
 var freqs = math.pow(2, freqOrder);
 var hfreqs = freqs/2;
@@ -176,7 +177,8 @@ function initializeCharts (count) {
     for (var j=0; j<count; j++) {
         for (var i in signalIds) {
             id = signalIds[i]
-            accdata[id].push(math.cos(math.pi*j/16))
+            accdata[id].push(math.cos(math.pi*j/16));
+            unfilteredData[id].push(math.cos(math.pi*j/16));
         }
         t.push(getTime());
         events.push(0);
@@ -271,8 +273,12 @@ function appendCharts (values) {
     for (var i in signalIds) {
         id = signalIds[i];
         // Compute this step of the convolution
-        var w = accdata[id].slice(-5);
-        var v = values[id] * hFIR[0]+ w[4] * hFIR[1] + w[3] * hFIR[2] + w[2]*hFIR[3] + w[1]*hFIR[4] +w[0]*hFIR[5];
+        unfilteredData[id].push(values[id]);
+        unfilteredData[id].shift();
+
+        var w = unfilteredData[id].slice(-6);
+        var v = w[5] * hFIR[0]+ w[4] * hFIR[1] + w[3] * hFIR[2] + w[2]*hFIR[3] + w[1]*hFIR[4] +w[0]*hFIR[5];
+
         accdata[id].push(v);
         accdata[id].shift();
         accdata[id].shift();
