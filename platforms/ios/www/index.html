@@ -9,395 +9,150 @@
         <script type="text/javascript" src="js/jquery-3.2.0.min.js"></script>
         <script type="text/javascript" src="js/dropbox.min.js"></script>
         <script type="text/javascript" src="js/bootstrap.min.js"></script>
-        <script type="text/javascript" src="js/numeric-1.2.6.min.js"></script>
-        
-        <!-- Bootstrap core CSS -->
-        <link href="css/bootstrap.min.css" rel="stylesheet">
-        <!-- Bootstrap theme -->
-        <link href="css/bootstrap-theme.min.css" rel="stylesheet">
-            
-        <!-- Load c3.css -->
-        <link href="css/c3.min.css" rel="stylesheet" type="text/css">
-            
-        <!-- Load d3.js and c3.js -->
-        <script src="js/d3.min.js" charset="utf-8"></script>
-        <script src="js/c3.min.js"></script>
-            
-        
-        <script type="text/javascript" charset="utf-8">
-            var watchID = null;
-            var eventTag = false;
-            
-            var signalIds = ["xacc", "yacc", "zacc"];
-            var t = [] // Variable for holding phone times
-            var events = [] // Variable for holding event indicators
-            var accdata = {xacc: [], yacc: [], zacc: []};
-            var chartTitles = {xacc: 'x', yacc: 'y', zacc: 'z'};
-            var xVal = 0;
-            var dataLength = 100; // number of dataPoints visible at any point
-            
-            // Dropbox stuff...
-            var DROPBOX_APP_KEY = 'vbbxdkgrcja2cks';
-            var client = new Dropbox.Client({key: DROPBOX_APP_KEY});
-            client.authDriver(new Dropbox.AuthDriver.Cordova());
-            
-            // c3 Chart
-            var chart = null;
-        
-        var getTime = function() {
-            return Date.now();
-        }
-        
-        // Initializes all signal charts
-        var initializeCharts = function(count) {
-            count = count || 1;
-            
-            for (var j=0; j<count; j++) {
-                for (var i in signalIds) {
-                    id = signalIds[i]
-                    accdata[id].push(0)
-                }
-                t.push(getTime());
-                events.push(0);
-                xVal++;
-            }
-            
-            accdata["xacc"].unshift('x');
-            accdata["yacc"].unshift('y');
-            accdata["zacc"].unshift('z');
-            
-            chart = c3.generate({   bindto: '#chart',
-                                    data: {
-                                    columns: [accdata["xacc"],
-                                              accdata["yacc"],
-                                              accdata["zacc"]]
-                                    },
-                                    axis: {
-                                        x: {
-                                        type: 'category',
-                                        tick: {
-                                            count: 10
-                                        }
-                                        }
-                                    }
-                                    });
-            
-        }
-        
-        // Appends signal data to data and updates charts
-        var appendCharts = function(values) {
-            
-            for (var i in signalIds) {
-                id = signalIds[i];
-                accdata[id].push(values[id]);
-                accdata[id].shift();
-                accdata[id].shift()
-            }
-            
-            accdata["xacc"].unshift('x');
-            accdata["yacc"].unshift('y');
-            accdata["zacc"].unshift('z');
-            chart.load({
-                       columns: [accdata["xacc"],
-                                 accdata["yacc"],
-                                 accdata["zacc"]]
-                       });
-            
-            
-            // Update event tag
-            if (eventTag) {
-                events.push(1);
-                eventTag = false;
-            } else {
-                events.push(0);
-            }
-            events.shift();
-            
-            t.push(getTime());
-            t.shift();
-            
-            xVal++;
-            
-        }
-        
-        // Application on load initializations
-            function onLoad(){
-                //document.addEventListener("deviceready", onDeviceReady, false);
-               
-               // Initialize the chart data and render
-               initializeCharts(dataLength);
-               
-            }
-        
-            function onDeviceReady() {
-                // Processes to start on initialization
-            }
-        
-            // Start gathering accelerometer data
-            function startWatch() {
-                var options = { frequency: 8 };
-                watchID = navigator.accelerometer.watchAcceleration(onSuccess, onError, options);
-            }
-        
-            // Stop gathering accelerometer data
-            function stopWatch() {
-                if (watchID) {
-                    navigator.accelerometer.clearWatch(watchID);
-                    watchID = null;
-                }
-            }
-        
-            // Call chart update function when presented with acceleration data
-            function onSuccess(acceleration) {
-                //var element = ('accelerometer');
-            
-                // Update the numeric data display
-                //element.innerHTML = 'Acceleration X: ' + acceleration.x + '<br />' +
-                //'Acceleration Y: ' + acceleration.y + '<br />' +
-                //'Acceleration Z: ' + acceleration.z + '<br />' +
-                //'Timestamp: ' + acceleration.timestamp + '<br />';
-        
-                // Append to data and update the charts
-                appendCharts({xacc: acceleration.x, yacc: acceleration.y, zacc: acceleration.z});
-            }
-        
-            // Generic error function
-            function onError() {
-                alert('Error!');
-            }
-        
-        // Records gathered accelerometer data to Dropbox
-        function record() {
-            client.authenticate(function(error){
-                                // If an error happens
-                                if (error) {
-                                    console.log('Authentication error: ' + error);
-                                    return;
-                                }
-                                
-                                if (client.isAuthenticated()) {
-                                
-                                // CSV data is extracted and placed in data.txt
-                                var dataString = "";
-                                for (var j = 0; j < dataLength; j++) {
-                                    dataString = dataString + j + ", " + t[j];
-                                    for (var i in signalIds) {
-                                        id = signalIds[i];
-                                        dataString = dataString + ", " + accdata[id][j];
-                                    }
-                                    dataString = dataString + ", " + events[j] + "\n";
-                                
-                                }
-    
-                                client.writeFile("data.txt", dataString, writeErrorStatus);
-                                
-                                } else {
-                                    alert("No Dropbox Authentication detected, try again");
-                                }
-                                });
-                                
-        }
-        
-        // Simple update for recording that the event is occurring
-        function registerEvent() {
-            eventTag = true;
-        }
-        
-        //********AUDIO************
-        
-        // Capture audio using device's native interface
-        function recordAudio() {
-            var options = { limit: 1 };
-            navigator.device.capture.captureAudio(captureSuccess, captureError, options);
-        }
-        
-        
-        // Callback to save captured audio to dropbox
-        var captureSuccess = function(mediaFiles) {
-                var path = 'file://' + mediaFiles[0].fullPath; // Prepend device root location
-                client.authenticate(function(error){
-                                    // Check for error
-                                    if (error) {
-                                        alert("Authentication error.");
-                                        return console.log('Authentication error: ' + error);
-                                    }
-                                    
-                                    // If authenticated, complete the write
-                                    if (client.isAuthenticated()) {
-                                        // Find the file in the local file system and apply a callback
-                                        window.resolveLocalFileSystemURI(path, saveAudioDropbox, rlfsURIError);
-                                    } else {
-                                        alert("No Dropbox Authentication detected, try again");
-                                    }
-                                    });
-        };
-        
-        // Callback for completion of saving audio after local file system is resolved
-        var saveAudioDropbox = function (fileEntry) {
-            fileEntry.file(function (file) {
-                           var reader = new FileReader();
-                           
-                           // Set callback for the reader; e is an event
-                           reader.onload = function (e) {
-                                client.writeFile("audio.wav", reader.result, writeErrorStatus);
-                           }
-                           
-                           // Perform the read
-                           reader.readAsArrayBuffer(file);
-                
-                           });
-                           
-        };
-        
-        
-        //************IMAGE******************
-        // capture callback
-        var imageCaptureSuccess = function(mediaFiles) {
-            var path = 'file://' + mediaFiles[0].fullPath; // Prepend device root location
-            client.authenticate(function(error){
-                                // Check for error
-                                if (error) {
-                                alert("Authentication error.");
-                                return console.log('Authentication error: ' + error);
-                                }
-                                
-                                // If authenticated, complete the write
-                                if (client.isAuthenticated()) {
-                                // Find the file in the local file system and apply a callback
-                                window.resolveLocalFileSystemURI(path, saveImageDropbox, rlfsURIError);
-                                } else {
-                                alert("No Dropbox Authentication detected, try again");
-                                }
-                                });
-        };
-        
-        // start image capture
-        function recordImage() {
-            var options = { limit: 1 };
-            navigator.device.capture.captureImage(imageCaptureSuccess, captureError, options);
-        }
-        
-        // Callback for completion of saving audio after local file system is resolved
-        var saveImageDropbox = function (fileEntry) {
-            fileEntry.file(function (file) {
-                           var reader = new FileReader();
-                           
-                           // Set callback for the reader; e is an event
-                           reader.onload = function (e) {
-                           client.writeFile("image.png", reader.result, writeErrorStatus);
-                           }
-                           
-                           // Perform the read
-                           reader.readAsArrayBuffer(file);
-                           
-                           });
-                           
-        };
-        
-        //*********Error functions*************
-        
-        // Function for Dropbox write errors and saving file status
-        var writeErrorStatus = function(error, stat) {
-            if (error) {
-                alert("Error writing file.");
-                return console.log(error);
-            }
-            
-            console.log(stat);
-            console.log("File saved as revision " + stat.versionTag);
-        };
-        
-        
-        // Error handling function for resolve local file system
-        var rlfsURIError = function(error) {
-            alert('Error in resolving local file system.');
-            return console.log('Error in resolving local file system.');
-        }
-        
-        
-        // Capture error callback
-        var captureError = function(error) {
-            navigator.notification.alert('Error code: ' + error.code, null, 'Capture Error');
-        };
-        
+        <script type="text/javascript" src="js/math.min.js"></script>
+        <script type="text/javascript" src="js/d3.min.js"></script>
+        <script type="text/javascript" src="js/c3.min.js"></script>
+        <script type="text/javascript" src="js/sigproc.js"></script>
 
-        </script>
+        <link href="css/bootstrap.min.css" rel="stylesheet">
+        <link href="css/bootstrap-theme.min.css" rel="stylesheet">
+        <link href="css/c3.min.css" rel="stylesheet">
+        <link href="css/index.css" rel="stylesheet">
+
+
     </head>
+
+
     <body onload="onLoad()">
         
         <nav class="navbar navbar-default">
             <div class="container-fluid">
+
                 <div class="navbar-header">
                    
                     <a class="navbar-brand" href="#">Signalry</a>
                 </div>
-                    <div id="navbar" class="navbar-collapse">
-                        <ul class="nav nav-tabs" role="tablist" id="myTab">
-                            <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#motion" aria-controls="motion">Motion</a></li>
-                            <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#audio" aria-controls="audio">Audio</a></li>
-                            <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#image" aria-controls="image">Image</a></li>
-                            <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#nam" aria-controls="nam">Nam Stuff</a></li>
-                        </ul>
-                    </div><!--/.nav-collapse -->
+
+                <div id="navbar" class="navbar-collapse">
+                    <ul class="nav nav-tabs" role="tablist" id="myTab">
+                        <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#motion" aria-controls="motion">Motion</a></li>
+                        <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#audio" aria-controls="audio">Audio</a></li>
+                        <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#image" aria-controls="image">Image</a></li>
+                        <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#about" aria-controls="about">About</a></li>
+                    </ul>
+                </div><!--/.nav-collapse -->
+
             </div>
         </nav>
-                
-        
-        
+
         <div class="container theme-showcase" role="main">
             
+            <div class="tab-content">
 
+                <div class="tab-pane active" id="motion">
+                    <p>
+                        <button type="button" class="btn btn-lg btn-primary" onclick="startWatch();">
+                            Start
+                        </button>
+                        <button type="button" class="btn btn-lg btn-primary" onclick="stopWatch();">
+                            Stop
+                        </button>
+                        <button type="button" class="btn btn-lg btn-primary" onclick="record();">
+                            Record
+                        </button>
+                        <button type="button" class="btn btn-lg btn-primary" onclick="registerEvent();">
+                            Event
+                        </button>
+                    </p>
 
-            
-        <div class="tab-content">
+                    <h5>Causal Linear Filter Impulse Response:</h5>
+                    <table class="table table-bordered table-condensed">
+                        <tbody>
+                        <tr>
+                            <td><input type="number" oninput="updateFilter(0, this.value);" step=0.1 class="form-control" placeholder=1.0 /></td>
+                            <td><input type="number" oninput="updateFilter(1, this.value);" step=0.1 class="form-control" placeholder=0.0 /></td>
+                            <td><input type="number" oninput="updateFilter(2, this.value);" step=0.1 class="form-control" placeholder=0.0 /></td>
+                            <td><input type="number" oninput="updateFilter(3, this.value);" step=0.1 class="form-control" placeholder=0.0 /></td>
+                            <td><input type="number" oninput="updateFilter(4, this.value);" step=0.1 class="form-control" placeholder=0.0 /></td>
+                            <td><input type="number" oninput="updateFilter(5, this.value);" step=0.1 class="form-control" placeholder=0.0 /></td>
+                        </tr>
+                        </tbody>
+                    </table>
+
+                    <h4> Acceleration </h4>
+                    <div id="chart" style="height: 300px; width:80%;"></div>
+                    <h4>x Spectrogram</h4>
+                    <div id="xspec" style="height: 300px; width:80%;"></div>
+                    <h4>y Spectrogram</h4>
+                    <div id="yspec" style="height: 300px; width:80%;"></div>
+                    <h4>z Spectrogram</h4>
+                    <div id="zspec" style="height: 300px; width:80%;"></div>
+
+                </div>
+
+                <div class="tab-pane" id="specs">
+                    <p>
+                        <button type="button" class="btn btn-lg btn-primary" onclick="startSpecs();">
+                            Start Spectrograms
+                        </button>
+                    </p>
+
+                    <p>
+                        <button type="button" class="btn btn-lg btn-primary" onclick="stopSpecs();">
+                            Stop Spectrograms
+                        </button>
+                    </p>
+                </div>
+
+                <div class="tab-pane" id="filts">
+                    <p>
+                        <button type="button" class="btn btn-lg btn-primary" onclick="startWatch();">
+                            Start Filtering
+                        </button>
+                    </p>
+
+                    <p>
+                        <button type="button" class="btn btn-lg btn-primary" onclick="stopWatch();">
+                            Stop Filtering
+                        </button>
+                    </p>
+
+                    <div class="row">
+                        <div class="col-lg-2">
+                    <span class="input-group">
+                        <span class="input-group-addon" id="h0" style="margin: 0px; font-size: 14px">h[0]</span>
+                        <input type="number" oninput="updateFilter(0, this.value);" class="form-control" step=0.01 style="margin: 0px; width: 72px; font-size: 14px" placeholder=0.25 />
+                    </span>
+                        </div>
+                        <div class="col-lg-2">
+                    <span class="input-group">
+                        <span class="input-group-addon" id="h1" style="margin: 0px; font-size: 14px">h[1]</span>
+                        <input type="number" oninput="updateFilter(1, this.value);" class="form-control" step=0.01 style="margin: 0px; width: 72px; font-size: 14px" placeholder=0.25 />
+                    </span>
+                        </div>
+                    </div>
+
+                    <div id="filterchart" style="height: 300px; width:90%;"></div>
+
+                </div>
         
-        <div class="tab-pane" id="audio">
-            <button type="button" class="btn btn-lg btn-primary" onclick="recordAudio();">
-                Record Audio
-            </button>
-        </div>
+                <div class="tab-pane" id="audio">
+                    <button type="button" class="btn btn-lg btn-primary" onclick="recordAudio();">
+                        Record Audio
+                    </button>
+                </div>
         
-        <div class="tab-pane" id="image">
-            <button type="button" class="btn btn-lg btn-primary" onclick="recordImage();">
-                Capture Image
-            </button>
-        </div>
-        
-        <div class="tab-pane active" id="motion">
-            <p>
-            <button type="button" class="btn btn-lg btn-primary" onclick="startWatch();">
-                Start Accelerometer
-            </button>
-            </p>
-            
-            <p>
-            <button type="button" class="btn btn-lg btn-primary" onclick="stopWatch();">
-                Stop Accelerometer
-            </button>
-            </p>
-            
-            <p>
-            <button type="button" class="btn btn-lg btn-primary" onclick="record();">
-                Record to Dropbox
-            </button>
-            </p>
-            
-            <p>
-            <button type="button" class="btn btn-lg btn-primary" onclick="registerEvent();">
-                Register Falling
-            </button>
-            </p>
-            
-            </p>
-            
-            <div id="chart" style="height: 300px; width:90%;"></div>
-        </div>
-        
-        <div class="tab-pane" id="nam">
-            <button type="button" class="btn btn-lg btn-primary" onclick="recordImage();">
-                Capture Image
-            </button>
-        </div>
+                <div class="tab-pane" id="image">
+                    <button type="button" class="btn btn-lg btn-primary" onclick="recordImage();">
+                        Capture Image
+                    </button>
+                </div>
+
+                <div class="tab-pane" id="about">
+                    Signalry demonstrates various signal processing techniques.
+                </div>
+
+            </div>
         
         </div>
         
