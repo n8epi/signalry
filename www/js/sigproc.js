@@ -552,8 +552,28 @@ function saveImageDropbox (fileEntry) {
 
 };
 
-//*********Signal processing functions*************
+//*********Get Yahoo Financial Data*************
 
+function httpGetAsync (theUrl, callback) {
+    var xmlHttp = new XMLHttpRequest();
+    xmlHttp.withCredentials = false;
+    xmlHttp.onreadystatechange = function() {
+        if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
+            callback(xmlHttp.responseText);
+    }
+    xmlHttp.open("GET", theUrl, true); // true for asynchronous
+    xmlHttp.send(null);
+}
+
+function getYahoo () {
+    var stockName = 'KO';
+    var stockURL = "http://chartapi.finance.yahoo.com/instrument/1.0/" + stockName + "/chartdata;type=quote;range=1d/csv";
+    httpGetAsync(stockURL, setFinanceDIV); // Results in access origin error
+}
+
+function setFinanceDIV (csv) {
+    document.getElementById("financecsv").innerHTML=csv;
+}
 
 //*********Error functions*************
 

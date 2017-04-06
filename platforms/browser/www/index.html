@@ -38,6 +38,7 @@
                         <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#motion" aria-controls="motion">Motion</a></li>
                         <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#audio" aria-controls="audio">Audio</a></li>
                         <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#image" aria-controls="image">Image</a></li>
+                        <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#finance" aria-controls="finance">Finance</a></li>
                         <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#about" aria-controls="about">About</a></li>
                     </ul>
                 </div><!--/.nav-collapse -->
@@ -146,6 +147,14 @@
                     <button type="button" class="btn btn-lg btn-primary" onclick="recordImage();">
                         Capture Image
                     </button>
+                </div>
+
+                <div class="tab-pane" id="finance">
+                    <button type="button" class="btn btn-lg btn-primary" onclick="getYahoo();">
+                        Get Yahoo Financial Data
+                    </button>
+                    <div id="financecsv">
+                    </div>
                 </div>
 
                 <div class="tab-pane" id="about">

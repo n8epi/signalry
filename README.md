@@ -17,6 +17,8 @@ Current functionality includes
     * Record and save audio to Dropbox
 3. Image data
     * Capture and save image to Dropbox
+4. Yahoo Finance data
+    * Request and display Yahoo Finance data
 
 
 
