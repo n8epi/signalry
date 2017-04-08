@@ -10,6 +10,7 @@
         <script type="text/javascript" src="js/dropbox.min.js"></script>
         <script type="text/javascript" src="js/bootstrap.min.js"></script>
         <script type="text/javascript" src="js/math.min.js"></script>
+        <script type="text/javascript" src="js/papaparse.min.js"></script>
         <script type="text/javascript" src="js/d3.min.js"></script>
         <script type="text/javascript" src="js/c3.min.js"></script>
         <script type="text/javascript" src="js/sigproc.js"></script>
@@ -153,8 +154,10 @@
                     <button type="button" class="btn btn-lg btn-primary" onclick="getYahoo();">
                         Get Yahoo Financial Data
                     </button>
-                    <div id="financecsv">
-                    </div>
+                    <div id="financecsv"></div>
+                    <div id="closeopen" style="height: 300px; width:90%;"></div>
+                    <div id="highlow" style="height: 300px; width:90%;"></div>
+                    <div id="volume" style="height: 300px; width:90%;"></div>
                 </div>
 
                 <div class="tab-pane" id="about">

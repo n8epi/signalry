@@ -22,13 +22,18 @@ var strideDelay = 0;
 var dataLength = 101; // number of dataPoints visible at any point
 var hFIR = [1, 0, 0, 0, 0, 0]; // filter impulse response
 
+var stockInfo = null;
+
 // Dropbox variables
 var DROPBOX_APP_KEY = 'vbbxdkgrcja2cks';
 var client = new Dropbox.Client({key: DROPBOX_APP_KEY});
 client.authDriver(new Dropbox.AuthDriver.Cordova());
 
-// c3 Chart
+// c3 Charts
 var chart = null;
+var ocChart = null;
+var hlChart = null;
+var volChart = null;
 
 // d3 Chart
 var xScale = null;
@@ -567,12 +572,75 @@ function httpGetAsync (theUrl, callback) {
 
 function getYahoo () {
     var stockName = 'KO';
+    // "s" + "t" = "st"
     var stockURL = "http://chartapi.finance.yahoo.com/instrument/1.0/" + stockName + "/chartdata;type=quote;range=1d/csv";
     httpGetAsync(stockURL, setFinanceDIV); // Results in access origin error
 }
 
 function setFinanceDIV (csv) {
-    document.getElementById("financecsv").innerHTML=csv;
+    var validCSV = (csv.split(':')).pop(); // data after last colon is open/close volume + csv
+    validCSV = validCSV.substring(validCSV.indexOf('\n')+1); // remove open/close volume
+    //document.getElementById("financecsv").innerHTML=csv;
+    var data = Papa.parse(validCSV, {
+        dynamicTyping: true
+    });
+
+    data['data'].pop(); // Get rid of erroneous data
+    stockInfo = transpose(data['data']); // Data is in rows
+
+    // Start all data arrays with their label for graphing
+    stockInfo[0].unshift("Timestamp")
+    stockInfo[1].unshift("Close");
+    stockInfo[2].unshift("High");
+    stockInfo[3].unshift("Low");
+    stockInfo[4].unshift("Open");
+    stockInfo[5].unshift("Volume");
+
+    //document.getElementById("financecsv").innerHTML=stockInfo[1].reverse();
+
+    // Charts of stock information
+    ocChart = c3.generate({   bindto: '#closeopen',
+        data: {
+            columns: [stockInfo[1], stockInfo[4]]
+        },
+        axis: {
+            x: {
+                type: 'category',
+                tick: {
+                    count: 6
+                }
+            }
+        }
+    });
+
+    hlChart = c3.generate({   bindto: '#highlow',
+        data: {
+            columns: [stockInfo[2], stockInfo[3]]
+        },
+        axis: {
+            x: {
+                type: 'category',
+                tick: {
+                    count: 6
+                }
+            }
+        }
+    });
+
+    volChart = c3.generate({   bindto: '#volume',
+        data: {
+            columns: [stockInfo[5]]
+        },
+        axis: {
+            x: {
+                type: 'category',
+                tick: {
+                    count: 6
+                }
+            }
+        }
+    });
+
 }
 
 //*********Error functions*************
