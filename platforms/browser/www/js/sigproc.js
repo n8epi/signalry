@@ -559,6 +559,7 @@ function saveImageDropbox (fileEntry) {
 
 //*********Get Yahoo Financial Data*************
 
+/* Old get function that avoids JQuery
 function httpGetAsync (theUrl, callback) {
     var xmlHttp = new XMLHttpRequest();
     xmlHttp.withCredentials = false;
@@ -569,39 +570,58 @@ function httpGetAsync (theUrl, callback) {
     xmlHttp.open("GET", theUrl, true); // true for asynchronous
     xmlHttp.send(null);
 }
+*/
 
 function getYahoo () {
-    var stockName = 'KO';
+    var stockName1 = 'KO';
+    var stockName2 = 'PEP';
     // "s" + "t" = "st"
-    var stockURL = "http://chartapi.finance.yahoo.com/instrument/1.0/" + stockName + "/chartdata;type=quote;range=1d/csv";
-    httpGetAsync(stockURL, setFinanceDIV); // Results in access origin error
+    var stockURL1 = makeStockURL(stockName1);
+    var stockURL2 = makeStockURL(stockName2);
+    //httpGetAsync(stockURL, setFinanceDIV); // Results in access origin error if run in browser
+    $.when($.get(stockURL1), $.get(stockURL2)).done(setFinanceDIV); // $ is JQuery
 }
 
-function setFinanceDIV (csv) {
-    var validCSV = (csv.split(':')).pop(); // data after last colon is open/close volume + csv
+function makeStockURL(stockName) {
+    return "http://chartapi.finance.yahoo.com/instrument/1.0/" + stockName + "/chartdata;type=quote;range=1d/csv";
+}
+
+function setFinanceDIV (csv1, csv2) {
+
+    var validCSV = (csv1[0].split(':')).pop(); // data after last colon is open/close volume + csv
     validCSV = validCSV.substring(validCSV.indexOf('\n')+1); // remove open/close volume
+
+    var validCSV2 = (csv2[0].split(':')).pop();
+    validCSV2 = validCSV2.substring(validCSV2.indexOf('\n')+1);
+
     //document.getElementById("financecsv").innerHTML=csv;
     var data = Papa.parse(validCSV, {
         dynamicTyping: true
     });
 
+    var data2 = Papa.parse(validCSV2, {
+        dynamicTyping: true
+    });
+
+    alert('Parsing finished...');
+
     data['data'].pop(); // Get rid of erroneous data
     stockInfo = transpose(data['data']); // Data is in rows
+    data2['data'].pop();
+    stockInfo2 = transpose(data2['data']);
 
     // Start all data arrays with their label for graphing
-    stockInfo[0].unshift("Timestamp")
-    stockInfo[1].unshift("Close");
-    stockInfo[2].unshift("High");
-    stockInfo[3].unshift("Low");
-    stockInfo[4].unshift("Open");
-    stockInfo[5].unshift("Volume");
-
-    //document.getElementById("financecsv").innerHTML=stockInfo[1].reverse();
+    var labels = ["Timestamp", "Close", "High", "Low", "Open", "Volume"];
+    for (var i=0; i<6; i++) {
+        var label = labels[i];
+        stockInfo[i].unshift('KO '+label);
+        stockInfo2[i].unshift('PEP ' + label);
+    }
 
     // Charts of stock information
     ocChart = c3.generate({   bindto: '#closeopen',
         data: {
-            columns: [stockInfo[1], stockInfo[4]]
+            columns: [stockInfo[1], stockInfo[4], stockInfo2[1], stockInfo2[4]]
         },
         axis: {
             x: {
@@ -615,7 +635,7 @@ function setFinanceDIV (csv) {
 
     hlChart = c3.generate({   bindto: '#highlow',
         data: {
-            columns: [stockInfo[2], stockInfo[3]]
+            columns: [stockInfo[2], stockInfo[3], stockInfo2[1], stockInfo2[3]]
         },
         axis: {
             x: {
@@ -629,7 +649,7 @@ function setFinanceDIV (csv) {
 
     volChart = c3.generate({   bindto: '#volume',
         data: {
-            columns: [stockInfo[5]]
+            columns: [stockInfo[5], stockInfo2[5]]
         },
         axis: {
             x: {
