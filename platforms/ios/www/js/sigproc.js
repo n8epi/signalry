@@ -582,8 +582,81 @@ function getYahoo () {
     $.when($.get(stockURL1), $.get(stockURL2)).done(setFinanceDIV); // $ is JQuery
 }
 
+function getGoogle () {
+    var currName1 = 'USD';
+    var currName2 = 'JPY';
+    var currName3 = 'EUR';
+    // "s" + "t" = "st"
+
+    //TODO: Implement makeCurrURL
+    var currURL1 = makeCurrURL(currName1, currName2);
+    var currURL2 = makeCurrURL(currName2, currName3);
+    var currURL3 = makeCurrURL(currName3, currName1);
+    //TODO: Implement setGoogleFinanceDIV
+    $.when($.get(currURL1), $.get(currURL2), $.get(currURL3)).done(setGoogleFinanceDIV); // $ is JQuery
+
+}
+
+function makeCurrURL (currName1, currName2) {
+    return "https://www.google.com/finance/getprices?i=60&p=1d&f=d,o,h,l,c,v&df=cpct&q="+currName1+currName2;
+}
+
 function makeStockURL(stockName) {
     return "http://chartapi.finance.yahoo.com/instrument/1.0/" + stockName + "/chartdata;type=quote;range=1d/csv";
+}
+
+function setGoogleFinanceDIV(resp1, resp2, resp3) {
+
+    var resps = [resp1, resp2, resp3];
+    FEXinfo = [null, null, null];
+    var FEXlabels = ["USDJPY", "JPYEUR", "EURUSD"];
+    var labels = ["Timestamp", "Close", "High", "Low", "Open", "Volume"];
+
+    for (var i=0; i<3; i++) {
+        var testText = resps[i][0].split('=');
+        var csv = testText.pop();
+        csv = csv.substring(csv.indexOf(',')+1);
+        csv = '1,' + csv;
+        var data = Papa.parse(csv, {
+            dynamicTyping: true // converts numeric string to javascript numbers
+        });
+        data['data'].pop(); // Removes empty last row
+        FEXinfo[i] = transpose(data['data']);
+
+        // Start all data arrays with their label for graphing using c3
+        for (var j=0; j<6; j++) {
+            var label = FEXlabels[i]+ ' ' +labels[j];
+            FEXinfo[i][j].unshift(label);
+        }
+    }
+
+    var window = 9;
+    var maxLen = Math.min([FEXinfo[0][1].length, FEXinfo[1][1].length, FEXinfo[2][1]]);
+    var movingAverageRatio = new Array(maxLen-9+1);
+
+    for (var i=0; i<maxLen-9; i++) {
+
+    }
+
+
+
+
+    //document.getElementById("financecsv").innerHTML = FEXinfo[1];
+
+    // Charts of stock information
+    ocChart = c3.generate({   bindto: '#closeopen',
+        data: {
+            columns: [FEXinfo[0][1], FEXinfo[1][1], FEXinfo[2][1]]
+        },
+        axis: {
+            x: {
+                type: 'category',
+                tick: {
+                    count: 6
+                }
+            }
+        }
+    });
 }
 
 function setFinanceDIV (csv1, csv2) {
