@@ -23,6 +23,9 @@ var dataLength = 101; // number of dataPoints visible at any point
 var hFIR = [1, 0, 0, 0, 0, 0]; // filter impulse response
 
 var stockInfo = null;
+var stockInfo2 = null;
+var dwtInfo = null;
+var dwtInfo2 = null;
 
 // Dropbox variables
 var DROPBOX_APP_KEY = 'vbbxdkgrcja2cks';
@@ -34,6 +37,7 @@ var chart = null;
 var ocChart = null;
 var hlChart = null;
 var volChart = null;
+var dwtChart = null;
 
 // d3 Chart
 var xScale = null;
@@ -170,6 +174,80 @@ function spectrogram (x, k, stride) {
     return ((spec.slice((n/2), n))).concat(spec.slice(0, (n/2)));
     //return spec;
 }
+
+function dyadic_dwt (x, k) {
+    var n = math.pow(2, k-1);
+    var v = new Array(n);
+    var w = new Array(n);
+    for (var i=0; i<n; i++) {
+        var idx = 2*i;
+        v[i] = (x[idx] + x[idx+1]) / math.sqrt(2);
+        w[i] = (x[idx] - x[idx+1]) / math.sqrt(2);
+    }
+
+    if (k>1) {
+        v = dyadic_dwt(v, k-1);
+    }
+
+    return v.concat(w);
+}
+
+function dyadic_idwt (x, k) {
+    var n = math.pow(2, k-1);
+    var v = new Array(n);
+    var w = new Array(n);
+    var z = new Array(2*n);
+
+    for (var i=0; i<n; i++) {
+        v[i] = x[i];
+        w[i] = x[i+n];
+    }
+
+    if (k>1) {
+        v = dyadic_idwt(v, k-1);
+    }
+
+    for (i=0; i<n; i++) {
+        var idx = 2*i;
+        z[idx] = (v[i] + w[i]) / math.sqrt(2);
+        z[idx + 1] = (v[i] - w[i]) / math.sqrt(2);
+    }
+
+    return z;
+}
+
+function dwt (x) {
+    var k = math.ceil(math.log(x.length, 2));
+    var n = math.pow(2, k);
+    var z = new Array(n);
+    // Zero padding
+    for (var i = 0; i < x.length; i++) {
+        z[i] = x[i];
+    }
+    for (i=x.length; i<n; i++) {
+        z[i] = 0;
+    }
+
+    return dyadic_dwt(z, k);
+}
+
+function idwt (x) {
+    var k = math.ceil(math.log(x.length, 2));
+    var n = math.pow(2, k);
+    var z = new Array(n);
+    // Zero padding
+    for (var i = 0; i < x.length; i++) {
+        z[i] = x[i];
+    }
+    for (i=x.length; i<n; i++) {
+        z[i] = 0;
+    }
+
+    return dyadic_idwt(z, k);
+}
+
+
+
 
 /**
  * Initialize the acceleration chart
@@ -631,14 +709,22 @@ function setGoogleFinanceDIV(resp1, resp2, resp3) {
     }
 
     var window = 9;
-    var maxLen = Math.min([FEXinfo[0][1].length, FEXinfo[1][1].length, FEXinfo[2][1]]);
+    var maxLen = Math.min(FEXinfo[0][1].length, FEXinfo[1][1].length, FEXinfo[2][1].length);
     var movingAverageRatio = new Array(maxLen-9+1);
 
-    for (var i=0; i<maxLen-9; i++) {
-
+    for (var i=8; i<maxLen; i++) {
+        var a = 0;
+        var b = 0;
+        var c = 0;
+        for (var j=0; j<window; j++) {
+            a = a + FEXinfo[0][1][i-j];
+            b = b + FEXinfo[1][1][i-j];
+            c = c + FEXinfo[2][1][i-j];
+        }
+        movingAverageRatio[i-8] = a * b * c / (window * window * window);
     }
 
-
+    movingAverageRatio.unshift('Arbitrage factor');
 
 
     //document.getElementById("financecsv").innerHTML = FEXinfo[1];
@@ -647,6 +733,21 @@ function setGoogleFinanceDIV(resp1, resp2, resp3) {
     ocChart = c3.generate({   bindto: '#closeopen',
         data: {
             columns: [FEXinfo[0][1], FEXinfo[1][1], FEXinfo[2][1]]
+        },
+        axis: {
+            x: {
+                type: 'category',
+                tick: {
+                    count: 6
+                }
+            }
+        }
+    });
+
+
+    hlChart = c3.generate({   bindto: '#highlow',
+        data: {
+            columns: [movingAverageRatio]
         },
         axis: {
             x: {
@@ -676,12 +777,26 @@ function setFinanceDIV (csv1, csv2) {
         dynamicTyping: true
     });
 
-    alert('Parsing finished...');
+    // alert('Parsing finished...');
 
     data['data'].pop(); // Get rid of erroneous data
     stockInfo = transpose(data['data']); // Data is in rows
     data2['data'].pop();
     stockInfo2 = transpose(data2['data']);
+
+    dwtInfo = [stockInfo[0],
+                    dwt(stockInfo[1]),
+                    dwt(stockInfo[2]),
+                    dwt(stockInfo[3]),
+                    dwt(stockInfo[4]),
+                    dwt(stockInfo[5])];
+
+    dwtInfo2 = [stockInfo2[0],
+                    dwt(stockInfo2[1]),
+                    dwt(stockInfo2[2]),
+                    dwt(stockInfo2[3]),
+                    dwt(stockInfo2[4]),
+                    dwt(stockInfo2[5])];
 
     // Start all data arrays with their label for graphing
     var labels = ["Timestamp", "Close", "High", "Low", "Open", "Volume"];
@@ -689,6 +804,8 @@ function setFinanceDIV (csv1, csv2) {
         var label = labels[i];
         stockInfo[i].unshift('KO '+label);
         stockInfo2[i].unshift('PEP ' + label);
+        dwtInfo[i].unshift('DWT KO '+label);
+        dwtInfo2[i].unshift('DWT PEP '+label);
     }
 
     // Charts of stock information
@@ -708,7 +825,7 @@ function setFinanceDIV (csv1, csv2) {
 
     hlChart = c3.generate({   bindto: '#highlow',
         data: {
-            columns: [stockInfo[2], stockInfo[3], stockInfo2[1], stockInfo2[3]]
+            columns: [stockInfo[2], stockInfo[3], stockInfo2[2], stockInfo2[3]]
         },
         axis: {
             x: {
@@ -723,6 +840,20 @@ function setFinanceDIV (csv1, csv2) {
     volChart = c3.generate({   bindto: '#volume',
         data: {
             columns: [stockInfo[5], stockInfo2[5]]
+        },
+        axis: {
+            x: {
+                type: 'category',
+                tick: {
+                    count: 6
+                }
+            }
+        }
+    });
+
+    dwtChart = c3.generate({   bindto: '#dwt',
+        data: {
+            columns: [dwtInfo[2], dwtInfo[3], dwtInfo2[2], dwtInfo2[3]]
         },
         axis: {
             x: {
